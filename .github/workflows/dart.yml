@@ -28,15 +28,13 @@ jobs:
         run: flutter pub get
 
       # Step 4: Clean and configure iOS project
-      - name: Prepare iOS project
+      - name: Clean and prepare iOS project
         run: |
           flutter clean
           rm -rf ios/Pods ios/Podfile.lock ios/Runner.xcworkspace
           flutter pub get
-          flutter build ios --no-codesign --config-only
 
-      # Step 5: Update Podfile for iOS deployment target
-      - name: Set iOS Deployment Target
+      - name: Update iOS Deployment Target in Podfile
         run: |
           if grep -q "platform :ios" ios/Podfile; then
             sed -i '' 's/platform :ios.*/platform :ios, '\''14.0'\''/' ios/Podfile
@@ -44,12 +42,19 @@ jobs:
             echo "platform :ios, '14.0'" >> ios/Podfile
           fi
 
-      # Step 6: Install CocoaPods dependencies
+      - name: Update Deployment Target in Xcode Project
+        run: |
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12.0;/IPHONEOS_DEPLOYMENT_TARGET = 14.0;/' ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Generate iOS Build Config
+        run: flutter build ios --no-codesign --config-only
+
       - name: Install CocoaPods
         run: |
           cd ios
           pod repo update
           pod install
+
 
       # Step 7: Build the IPA
       - name: Build IPA
