@@ -20,29 +20,34 @@ jobs:
         channel: stable
         architecture: x64
 
-    - name: Clean and Reset CocoaPods
+    - name: Clean iOS Build
       run: |
         flutter clean
-        rm -rf ios/Pods ios/Podfile.lock ios/Runner.xcworkspace
-        cd ios && pod cache clean --all
+        rm -rf ios/Podfile ios/Podfile.lock ios/Pods ios/Runner.xcworkspace
 
-    - name: Update iOS Deployment Target in Podfile
+    - name: Install Flutter Dependencies
+      run: flutter pub get
+
+    - name: Configure iOS Build
+      run: flutter build ios --no-codesign --config-only
+
+    - name: Ensure Podfile Configuration
       run: |
-        if grep -q "platform :ios" ios/Podfile; then
-          sed -i '' 's/platform :ios.*/platform :ios, '\''14.0'\''/' ios/Podfile
-        else
-          echo "platform :ios, '14.0'" >> ios/Podfile
+        if [ ! -f ios/Podfile ]; then
+          echo "
+          platform :ios, '14.0'
+
+          target 'Runner' do
+            use_frameworks!
+            use_modular_headers!
+            flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+          end
+          " > ios/Podfile
         fi
 
     - name: Update Deployment Target in Xcode Project
       run: |
         sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]\+\.[0-9]\+/IPHONEOS_DEPLOYMENT_TARGET = 14.0/' ios/Runner.xcodeproj/project.pbxproj
-
-    - name: Install Dependencies
-      run: flutter pub get
-
-    - name: Generate iOS Build Config
-      run: flutter build ios --no-codesign --config-only
 
     - name: Install CocoaPods Dependencies
       run: |
@@ -52,4 +57,5 @@ jobs:
 
     - name: Build iOS App
       run: flutter build ios --release --no-codesign
+
 
