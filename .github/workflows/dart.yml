@@ -7,73 +7,48 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-ios:
-    name: Build iOS IPA
+  build:
     runs-on: macos-latest
 
     steps:
-      # Step 1: Checkout the repository
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout Code
+      uses: actions/checkout@v3
 
-      # Step 2: Set up Flutter
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          architecture: x64
+    - name: Install Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: 'stable'
 
-      # Step 3: Install dependencies
-      - name: Install Flutter dependencies
-        run: flutter pub get
+    - name: Clean and Reset CocoaPods
+      run: |
+        flutter clean
+        rm -rf ios/Pods ios/Podfile.lock ios/Runner.xcworkspace
+        cd ios && pod cache clean --all
 
-      # Step 4: Clean and configure iOS project
-      - name: Clean and prepare iOS project
-        run: |
-          flutter clean
-          rm -rf ios/Pods ios/Podfile.lock ios/Runner.xcworkspace
-          flutter pub get
+    - name: Update iOS Deployment Target in Podfile
+      run: |
+        if grep -q "platform :ios" ios/Podfile; then
+          sed -i '' 's/platform :ios.*/platform :ios, '\''14.0'\''/' ios/Podfile
+        else
+          echo "platform :ios, '14.0'" >> ios/Podfile
+        fi
 
-      - name: Update iOS Deployment Target in Podfile
-        run: |
-          if grep -q "platform :ios" ios/Podfile; then
-            sed -i '' 's/platform :ios.*/platform :ios, '\''14.0'\''/' ios/Podfile
-          else
-            echo "platform :ios, '14.0'" >> ios/Podfile
-          fi
+    - name: Update Deployment Target in Xcode Project
+      run: |
+        sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]\+\.[0-9]\+/IPHONEOS_DEPLOYMENT_TARGET = 14.0/' ios/Runner.xcodeproj/project.pbxproj
 
-      - name: Update Deployment Target in Xcode Project
-        run: |
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12.0;/IPHONEOS_DEPLOYMENT_TARGET = 14.0;/' ios/Runner.xcodeproj/project.pbxproj
+    - name: Install Dependencies
+      run: flutter pub get
 
-      - name: Generate iOS Build Config
-        run: flutter build ios --no-codesign --config-only
+    - name: Generate iOS Build Config
+      run: flutter build ios --no-codesign --config-only
 
-      - name: Install CocoaPods
-        run: |
-          cd ios
-          pod repo update
-          pod install
+    - name: Install CocoaPods Dependencies
+      run: |
+        cd ios
+        pod repo update
+        pod install
 
-
-      # Step 7: Build the IPA
-      - name: Build IPA
-        env:
-          CI: true
-        run: flutter build ios --release --no-codesign
-
-      # Step 8: Package the IPA
-      - name: Create IPA Package
-        run: |
-          cd build/ios/iphoneos
-          mkdir -p Payload
-          cp -r Runner.app Payload/
-          zip -r FlutterIpaExport.ipa Payload
-
-      # Step 9: Upload the IPA as an artifact
-      - name: Upload IPA to GitHub Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: FlutterIpaExport
-          path: build/ios/iphoneos/FlutterIpaExport.ipa
+    - name: Build iOS App
+      run: flutter build ios --release --no-codesign
 
