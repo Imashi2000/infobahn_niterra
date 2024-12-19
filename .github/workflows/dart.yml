@@ -42,12 +42,12 @@ jobs:
           " > ios/Podfile
         fi
 
-    - name: Configure iOS Build
-      run: flutter build ios --no-codesign --config-only
-
     - name: Update Deployment Target in Xcode Project
       run: |
         sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]\+\.[0-9]\+/IPHONEOS_DEPLOYMENT_TARGET = 14.0/' ios/Runner.xcodeproj/project.pbxproj
+
+    - name: Configure iOS Build
+      run: flutter build ios --no-codesign --config-only
 
     - name: Install CocoaPods Dependencies
       run: |
