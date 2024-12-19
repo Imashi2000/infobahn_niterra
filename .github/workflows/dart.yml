@@ -30,7 +30,15 @@ jobs:
             echo "platform :ios, '14.0'" >> ios/Podfile
           fi
 
-      # Update CocoaPods repo and install dependencies
+      # Update Xcode project to avoid merge-related UUID issues
+      - name: Regenerate iOS Project Files
+        run: |
+          flutter clean
+          rm -rf ios/Podfile.lock ios/Pods ios/Runner.xcworkspace
+          flutter pub get
+          flutter build ios --no-codesign --config-only
+
+      # Install CocoaPods dependencies
       - name: Install CocoaPods
         run: |
           cd ios
@@ -57,5 +65,4 @@ jobs:
           tag: v1.0
           overwrite: true
           body: "This is the first release"
-
 
