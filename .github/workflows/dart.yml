@@ -28,9 +28,6 @@ jobs:
     - name: Install Flutter Dependencies
       run: flutter pub get
 
-    - name: Configure iOS Build
-      run: flutter build ios --no-codesign --config-only
-
     - name: Ensure Podfile Configuration
       run: |
         if [ ! -f ios/Podfile ]; then
@@ -44,6 +41,9 @@ jobs:
           end
           " > ios/Podfile
         fi
+
+    - name: Configure iOS Build
+      run: flutter build ios --no-codesign --config-only
 
     - name: Update Deployment Target in Xcode Project
       run: |
